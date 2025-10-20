@@ -9,17 +9,18 @@
  * @author [Mitrajit Ghorui](https://github.com/KeyKyrios)
  */
 
-#include <cassert>     /// for assert
-#include <iostream>    /// for IO operations
-#include <stdexcept>   /// for std::invalid_argument
-#include <vector>      /// for std::vector
-#include <cmath>       /// for fabs
+#include <cassert>        /// for assert
+#include <cmath>          /// for fabs
+#include <iostream>       /// for IO operations
+#include <stdexcept>      /// for std::invalid_argument
+#include <unordered_set>  /// for std::unordered_set
+#include <vector>         /// for std::vector
 
 /**
- * @namespace maths
- * @brief Mathematical algorithms
+ * @namespace numerical_methods
+ * @brief Numerical Methods
  */
-namespace maths {
+namespace numerical_methods {
 /**
  * @namespace nevilles_algorithm
  * @brief Functions for Neville's Algorithm
@@ -31,8 +32,8 @@ namespace nevilles_algorithm {
  * @param y_coords Vector of y-coordinates of the given points.
  * @param target The x-coordinate at which to evaluate the polynomial.
  * @returns The interpolated y-value at the target x-coordinate.
- * @throws std::invalid_argument if input vectors are empty or have mismatched
- * sizes.
+ * @throws std::invalid_argument if vectors are empty, have mismatched
+ * sizes, or if x-coordinates are not unique.
  */
 double interpolate(const std::vector<double>& x_coords,
                    const std::vector<double>& y_coords, double target) {
@@ -44,11 +45,18 @@ double interpolate(const std::vector<double>& x_coords,
             "x and y coordinate vectors must be the same size.");
     }
 
-    int n = x_coords.size();
+    std::unordered_set<double> seenX;
+    for (double val : x_coords) {
+        if (!seenX.insert(val).second) {
+            throw std::invalid_argument("Input x-coordinates must be unique.");
+        }
+    }
+
+    size_t n = x_coords.size();
     std::vector<double> p = y_coords;  // Initialize p with y values
 
-    for (int k = 1; k < n; ++k) {
-        for (int i = 0; i < n - k; ++i) {
+    for (size_t k = 1; k < n; ++k) {
+        for (size_t i = 0; i < n - k; ++i) {
             p[i] = ((target - x_coords[i + k]) * p[i] +
                     (x_coords[i] - target) * p[i + 1]) /
                    (x_coords[i] - x_coords[i + k]);
@@ -58,7 +66,7 @@ double interpolate(const std::vector<double>& x_coords,
     return p[0];
 }
 }  // namespace nevilles_algorithm
-}  // namespace maths
+}  // namespace numerical_methods
 
 /**
  * @brief Self-test implementations
@@ -71,7 +79,8 @@ static void test() {
     std::vector<double> y1 = {1, 5};
     double target1 = 1;
     double expected1 = 3.0;
-    assert(fabs(maths::nevilles_algorithm::interpolate(x1, y1, target1) - expected1) < 1e-9);
+    assert(fabs(numerical_methods::nevilles_algorithm::interpolate(x1, y1, target1) -
+                expected1) < 1e-9);
     std::cout << "Linear test passed." << std::endl;
 
     // Test 2: Quadratic interpolation y = x^2
@@ -80,7 +89,8 @@ static void test() {
     std::vector<double> y2 = {0, 1, 9};
     double target2 = 2;
     double expected2 = 4.0;
-    assert(fabs(maths::nevilles_algorithm::interpolate(x2, y2, target2) - expected2) < 1e-9);
+    assert(fabs(numerical_methods::nevilles_algorithm::interpolate(x2, y2, target2) -
+                expected2) < 1e-9);
     std::cout << "Quadratic test passed." << std::endl;
 
     // Test 3: Negative numbers y = x^2 - 2x + 1
@@ -89,8 +99,21 @@ static void test() {
     std::vector<double> y3 = {4, 1, 1};
     double target3 = 1;
     double expected3 = 0.0;
-    assert(fabs(maths::nevilles_algorithm::interpolate(x3, y3, target3) - expected3) < 1e-9);
+    assert(fabs(numerical_methods::nevilles_algorithm::interpolate(x3, y3, target3) -
+                expected3) < 1e-9);
     std::cout << "Negative numbers test passed." << std::endl;
+
+    // Test 4: Exception for duplicate x-coordinates
+    std::vector<double> x4 = {1, 2, 1};
+    std::vector<double> y4 = {5, 8, 3};
+    bool exception_thrown = false;
+    try {
+        numerical_methods::nevilles_algorithm::interpolate(x4, y4, 1.5);
+    } catch (const std::invalid_argument& e) {
+        exception_thrown = true;
+    }
+    assert(exception_thrown);
+    std::cout << "Duplicate X coordinate test passed." << std::endl;
 
     std::cout << "All tests have successfully passed!" << std::endl;
 }
